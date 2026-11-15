@@ -6,27 +6,30 @@ A lightweight, modern web-based Point of Sale (POS) and real-time Bill Calculato
 
 ## ✨ Features
 
-- **Accurate Menu Catalog**: Pre-loaded with all 34 dishes across 13 categories (Pizza, Kulhad Pizza, Burgers, Sandwiches, Momos, Shakes, Fries, Rolls, Noodles, Coffee, etc.) with exact prices from the menu card.
-- **Instant Bill Calculation**:
-  - Click any dish to add it immediately to the active bill.
-  - Live quantity adjustment (`+` / `-`) on both the menu cards and bill table.
-  - Subtotal, discounts (flat ₹ or %), and optional GST tax calculations.
-- **Receipt Preview & Thermal Printing**:
-  - Modal styled after your order details template (`1 x Item Name ... ₹Price`, `Items ... ₹Total`, `Taxes ... ₹0`, `Total Bill [PAID] ... ₹Total`).
-  - Print-ready `@media print` layout optimized for 80mm thermal receipt printers as well as standard paper.
-- **Custom Add-ons**: Easily add off-menu items or custom charges (extra cheese, sauces, dips, etc.).
-- **Order History & Persistence**:
-  - Auto-increments invoice numbers (`#BNB-1001`, `#BNB-1002`, ...).
-  - Saves completed orders to browser storage (`localStorage`).
-- **Responsive & Fast**: Works smoothly on desktops, laptops, tablets, and phones.
+- **📲 Smart WhatsApp Receipt Sharing**:
+  - **With Customer Number**: Automatically directs the bill to the customer's WhatsApp chat with all order details formatted cleanly.
+  - **Without Customer Number**: Redirects to WhatsApp with a contact picker to choose any contact from your saved list.
+  - **Formatted Message**: Includes restaurant name, address, phone, invoice number, items ordered with prices, item count, and total bill.
+
+- **🧹 Clean & Direct Billing Flow**:
+  - Removed all unnecessary inputs (Order Type, Bill Status, Subtotal, Discount, Payment mode selectors).
+  - Simply shows Customer Name & WhatsApp Number, the bill item rows (`- Qty +`), and the direct **Total Bill (PAID)**.
+
+- **🍕 Complete Menu Catalog (34 Dishes Across 13 Categories)**:
+  - Exact prices and names from the restaurant menu card (Pizza Large 9", Kulhad Pizza ₹99, Subway Rolls, Sandwiches, Burgers, Momos Platter, Fries, Noodles, Shakes ₹99, Coffee, Pasta, Chilli Potato).
+
+- **📱 Fully Responsive (Mobile Phone, Tablet & Desktop)**:
+  - **Phone-Optimized POS**: Clean touch-friendly cards with quick `+ ADD` and stepper controls.
+  - **Floating Cart Bar**: A sticky bottom bar appears when items are added (`🛒 X ITEMS | ₹GrandTotal` with `View Bill ➔`).
+  - **Slide-up Mobile Drawer**: One tap opens the complete order and billing drawer with `← Back` navigation.
+  - **Desktop POS**: Clean side-by-side split screen for fast cash-counter operations.
+
+- **🧾 Print-Ready Receipts**:
+  - Preview styled after your receipt design (`1 x Aloo Tikki Burger ₹60`, `2 items ₹150`, `Taxes ₹0`, `Total Bill [PAID] ₹150`).
+  - Optimized for 80mm thermal receipt printers as well as standard paper.
 
 ---
 
 ## 🚀 How to Run
 
-1. Open `index.html` directly in any web browser (Chrome, Edge, Firefox, Safari).
-2. Or serve it locally using Python / Node:
-   ```bash
-   python -m http.server 8000
-   ```
-   and navigate to `http://localhost:8000`.
+Open [index.html](file:///c:/Users/RitikTyagi/Documents/BillyOS/index.html) in any web browser.

@@ -1,6 +1,7 @@
 /**
  * BAKE 'N' BITE - POS & Billing System
  * Complete menu data and live calculation logic
+ * Mobile Responsive + WhatsApp Receipt Sharing
  */
 
 // 1. MENU DATA EXACTLY FROM THE MENU CARD
@@ -73,7 +74,6 @@ const MENU_ITEMS = [
 
 // 2. STATE MANAGEMENT
 let cart = {}; // { itemId: quantity }
-let customItems = {}; // { customId: { name, price, quantity } }
 let activeCategory = 'All';
 let searchQuery = '';
 let currentInvoiceSeq = parseInt(localStorage.getItem('bnb_invoice_seq') || '1001', 10);
@@ -86,20 +86,27 @@ const searchInput = document.getElementById('searchInput');
 const clearSearchBtn = document.getElementById('clearSearchBtn');
 const itemsFoundText = document.getElementById('itemsFoundText');
 
+const billingPanel = document.getElementById('billingPanel');
+const mobileBackdrop = document.getElementById('mobileBackdrop');
+const mobileCartBar = document.getElementById('mobileCartBar');
+const mobileBarQty = document.getElementById('mobileBarQty');
+const mobileBarTotal = document.getElementById('mobileBarTotal');
+const mobileHeaderBadge = document.getElementById('mobileHeaderBadge');
+const mobileHeaderCartBtn = document.getElementById('mobileHeaderCartBtn');
+const mobileViewBillBtn = document.getElementById('mobileViewBillBtn');
+const closeMobileBillBtn = document.getElementById('closeMobileBillBtn');
+
+const customerNameInput = document.getElementById('customerName');
+const customerPhoneInput = document.getElementById('customerPhone');
+
 const billItemsList = document.getElementById('billItemsList');
 const emptyCartState = document.getElementById('emptyCartState');
 const totalItemsBadge = document.getElementById('totalItemsBadge');
-const summaryTotalQty = document.getElementById('summaryTotalQty');
-const summarySubtotal = document.getElementById('summarySubtotal');
-const summaryDiscount = document.getElementById('summaryDiscount');
-const summaryTax = document.getElementById('summaryTax');
 const summaryGrandTotal = document.getElementById('summaryGrandTotal');
-const discountValueInput = document.getElementById('discountValue');
-const discountTypeSelect = document.getElementById('discountType');
-const taxRateSelect = document.getElementById('taxRateSelect');
-const paymentStatusSelect = document.getElementById('paymentStatus');
-const statusPillDisplay = document.getElementById('statusPillDisplay');
 const currentInvoiceNumberEl = document.getElementById('currentInvoiceNumber');
+
+const shareWhatsappBtn = document.getElementById('shareWhatsappBtn');
+const modalWhatsappBtn = document.getElementById('modalWhatsappBtn');
 
 const receiptModal = document.getElementById('receiptModal');
 const historyModal = document.getElementById('historyModal');
@@ -148,8 +155,8 @@ function renderMenu() {
 
   if (filtered.length === 0) {
     menuGrid.innerHTML = `
-      <div style="grid-column: 1/-1; text-align: center; padding: 3rem 1rem; color: #64748b;">
-        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔍</div>
+      <div style="grid-column: 1/-1; text-align: center; padding: 2.5rem 1rem; color: #64748b;">
+        <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">🔍</div>
         <p>No dishes found matching "<strong>${escapeHtml(searchQuery)}</strong>"</p>
         <button class="btn-secondary" style="margin-top: 0.75rem;" onclick="resetSearch()">Show All Items</button>
       </div>
@@ -200,7 +207,6 @@ function renderMenu() {
 
 // 5. CART / BILL CALCULATIONS
 function handleCardClick(event, id) {
-  // If user clicked anywhere on card, add or increment
   addItem(id);
 }
 
@@ -213,11 +219,9 @@ function addItem(id) {
 function incrementItem(id) {
   if (cart[id]) {
     cart[id] += 1;
-  } else if (customItems[id]) {
-    customItems[id].quantity += 1;
+    renderMenu();
+    renderBill();
   }
-  renderMenu();
-  renderBill();
 }
 
 function decrementItem(id) {
@@ -226,32 +230,25 @@ function decrementItem(id) {
     if (cart[id] <= 0) {
       delete cart[id];
     }
-  } else if (customItems[id]) {
-    customItems[id].quantity -= 1;
-    if (customItems[id].quantity <= 0) {
-      delete customItems[id];
-    }
+    renderMenu();
+    renderBill();
   }
-  renderMenu();
-  renderBill();
 }
 
 function removeItem(id) {
-  if (cart[id]) delete cart[id];
-  if (customItems[id]) delete customItems[id];
-  renderMenu();
-  renderBill();
+  if (cart[id]) {
+    delete cart[id];
+    renderMenu();
+    renderBill();
+  }
 }
 
 function clearCart() {
-  if (Object.keys(cart).length === 0 && Object.keys(customItems).length === 0) return;
-  if (confirm("Are you sure you want to clear this entire bill?")) {
+  if (Object.keys(cart).length === 0) return;
+  if (confirm("Are you sure you want to clear this bill?")) {
     cart = {};
-    customItems = {};
-    document.getElementById('customerName').value = '';
-    document.getElementById('customerPhone').value = '';
-    discountValueInput.value = '0';
-    taxRateSelect.value = '0';
+    if (customerNameInput) customerNameInput.value = '';
+    if (customerPhoneInput) customerPhoneInput.value = '';
     renderMenu();
     renderBill();
   }
@@ -260,53 +257,20 @@ function clearCart() {
 // 6. RENDER BILL & SUMMARY
 function calculateTotals() {
   let totalQty = 0;
-  let subtotal = 0;
+  let totalAmount = 0;
 
-  // Regular menu items
   for (const id in cart) {
     const qty = cart[id];
     const item = MENU_ITEMS.find(i => i.id === id);
     if (item && qty > 0) {
       totalQty += qty;
-      subtotal += item.price * qty;
+      totalAmount += item.price * qty;
     }
   }
-
-  // Custom added items
-  for (const cid in customItems) {
-    const cItem = customItems[cid];
-    if (cItem && cItem.quantity > 0) {
-      totalQty += cItem.quantity;
-      subtotal += cItem.price * cItem.quantity;
-    }
-  }
-
-  // Discount calculation
-  const discountVal = parseFloat(discountValueInput.value) || 0;
-  const discountType = discountTypeSelect.value;
-  let discountAmount = 0;
-
-  if (discountType === 'percent') {
-    discountAmount = (subtotal * Math.min(discountVal, 100)) / 100;
-  } else {
-    discountAmount = Math.min(discountVal, subtotal);
-  }
-
-  const taxableAmount = Math.max(0, subtotal - discountAmount);
-
-  // Tax calculation
-  const taxRate = parseFloat(taxRateSelect.value) || 0;
-  const taxAmount = Math.round((taxableAmount * taxRate) / 100);
-
-  // Grand Total
-  const grandTotal = Math.round(taxableAmount + taxAmount);
 
   return {
     totalQty,
-    subtotal,
-    discountAmount: Math.round(discountAmount),
-    taxAmount,
-    grandTotal
+    grandTotal: totalAmount
   };
 }
 
@@ -314,23 +278,26 @@ function renderBill() {
   const totals = calculateTotals();
   const hasItems = totals.totalQty > 0;
 
-  // Badge updates
+  // Panel summary updates
   totalItemsBadge.textContent = `${totals.totalQty} Item${totals.totalQty === 1 ? '' : 's'}`;
-  summaryTotalQty.textContent = totals.totalQty;
-  summarySubtotal.textContent = `₹${totals.subtotal}`;
-  summaryDiscount.textContent = totals.discountAmount > 0 ? `- ₹${totals.discountAmount}` : '₹0';
-  summaryTax.textContent = `₹${totals.taxAmount}`;
   summaryGrandTotal.textContent = `₹${totals.grandTotal}`;
 
-  // Update status badge
-  statusPillDisplay.textContent = paymentStatusSelect.value;
-  statusPillDisplay.style.color = paymentStatusSelect.value === 'PAID' ? '#0284c7' : '#ea580c';
-  statusPillDisplay.style.background = paymentStatusSelect.value === 'PAID' ? '#eff6ff' : '#fff7ed';
-  statusPillDisplay.style.borderColor = paymentStatusSelect.value === 'PAID' ? '#bfdbfe' : '#fed7aa';
+  // Mobile elements sync
+  if (mobileBarQty) mobileBarQty.textContent = `${totals.totalQty} ITEM${totals.totalQty === 1 ? '' : 'S'}`;
+  if (mobileBarTotal) mobileBarTotal.textContent = `₹${totals.grandTotal}`;
+  if (mobileHeaderBadge) mobileHeaderBadge.textContent = totals.totalQty;
+
+  // Mobile floating bar visibility
+  if (mobileCartBar) {
+    if (hasItems) {
+      mobileCartBar.classList.add('visible');
+    } else {
+      mobileCartBar.classList.remove('visible');
+    }
+  }
 
   if (!hasItems) {
     emptyCartState.style.display = 'flex';
-    // Clear list items except emptyCartState
     const rows = billItemsList.querySelectorAll('.bill-row');
     rows.forEach(r => r.remove());
     return;
@@ -340,8 +307,6 @@ function renderBill() {
 
   // Build rows
   let html = '';
-
-  // Menu items
   for (const id in cart) {
     const qty = cart[id];
     const item = MENU_ITEMS.find(i => i.id === id);
@@ -365,60 +330,25 @@ function renderBill() {
     `;
   }
 
-  // Custom items
-  for (const cid in customItems) {
-    const cItem = customItems[cid];
-    if (!cItem || cItem.quantity <= 0) continue;
-
-    html += `
-      <div class="bill-row" style="background:#fafafa;">
-        <div>
-          <div class="bill-item-name">${cItem.name}</div>
-          <div class="bill-item-sub">Custom Add-on</div>
-        </div>
-        <div class="qty-controls">
-          <button type="button" class="qty-btn" onclick="decrementItem('${cid}')">−</button>
-          <span class="qty-val">${cItem.quantity}</span>
-          <button type="button" class="qty-btn" onclick="incrementItem('${cid}')">+</button>
-        </div>
-        <div class="bill-item-rate text-right">₹${cItem.price}</div>
-        <div class="bill-item-amount text-right">₹${cItem.price * cItem.quantity}</div>
-        <button type="button" class="btn-remove-row" onclick="removeItem('${cid}')" title="Remove">✕</button>
-      </div>
-    `;
-  }
-
-  // Keep empty state element in DOM, update rows
   const rows = billItemsList.querySelectorAll('.bill-row');
   rows.forEach(r => r.remove());
   billItemsList.insertAdjacentHTML('beforeend', html);
 }
 
-// 7. CUSTOM ITEM ADD
-function addCustomItem() {
-  const nameInput = document.getElementById('customItemName');
-  const priceInput = document.getElementById('customItemPrice');
-  const name = nameInput.value.trim();
-  const price = parseFloat(priceInput.value);
-
-  if (!name || isNaN(price) || price <= 0) {
-    alert("Please enter a valid item name and price.");
-    return;
-  }
-
-  const cid = 'c_' + Date.now();
-  customItems[cid] = {
-    name,
-    price: Math.round(price),
-    quantity: 1
-  };
-
-  nameInput.value = '';
-  priceInput.value = '';
-  renderBill();
+// 7. MOBILE DRAWER ACTIONS
+function openMobileDrawer() {
+  billingPanel.classList.add('mobile-open');
+  mobileBackdrop.classList.add('active');
+  document.body.classList.add('drawer-open');
 }
 
-// 8. RECEIPT MODAL GENERATOR (MATCHING IMAGE 2 EXACTLY)
+function closeMobileDrawer() {
+  billingPanel.classList.remove('mobile-open');
+  mobileBackdrop.classList.remove('active');
+  document.body.classList.remove('drawer-open');
+}
+
+// 8. RECEIPT MODAL GENERATOR (EXACT IMAGE 2 STYLE)
 function openReceiptModal() {
   const totals = calculateTotals();
   if (totals.totalQty === 0) {
@@ -426,11 +356,8 @@ function openReceiptModal() {
     return;
   }
 
-  const customerName = document.getElementById('customerName').value.trim();
-  const customerPhone = document.getElementById('customerPhone').value.trim();
-  const orderType = document.getElementById('orderType').value;
-  const paymentStatus = paymentStatusSelect.value;
-  const payMethod = document.querySelector('input[name="payMethod"]:checked')?.value || 'Cash';
+  const customerName = customerNameInput.value.trim();
+  const customerPhone = customerPhoneInput.value.trim();
 
   // Populate Meta
   document.getElementById('rInvoice').textContent = `#BNB-${currentInvoiceSeq}`;
@@ -447,12 +374,7 @@ function openReceiptModal() {
     rCustRow.style.display = 'none';
   }
 
-  document.getElementById('rType').textContent = orderType;
-  document.getElementById('rPaymentMethod').textContent = payMethod;
-
-  // Populate Items - Exactly Image 2 style:
-  // 1 x Aloo Tikki Burger           ₹109
-  // 1 x Paneer Wrap                 ₹159
+  // Populate Items - Exactly Image 2 style
   const rItemsList = document.getElementById('rItemsList');
   let itemsHtml = '';
 
@@ -472,42 +394,12 @@ function openReceiptModal() {
     `;
   }
 
-  for (const cid in customItems) {
-    const cItem = customItems[cid];
-    if (!cItem || cItem.quantity <= 0) continue;
-
-    itemsHtml += `
-      <div class="receipt-item-row">
-        <div class="receipt-item-name-wrap">
-          <span class="r-qty">${cItem.quantity} x</span>
-          <span class="r-item-name">${cItem.name}</span>
-        </div>
-        <div class="receipt-item-amount">₹${cItem.price * cItem.quantity}</div>
-      </div>
-    `;
-  }
-
   rItemsList.innerHTML = itemsHtml;
 
-  // Summary lines matching Image 2:
-  // 2 items                          ₹268
-  // Taxes                              ₹0
-  // Total Bill [PAID]                ₹268
+  // Summary lines matching Image 2
   document.getElementById('rItemCount').textContent = `${totals.totalQty} item${totals.totalQty === 1 ? '' : 's'}`;
-  document.getElementById('rSubtotal').textContent = `₹${totals.subtotal}`;
-
-  const rDiscountRow = document.getElementById('rDiscountRow');
-  if (totals.discountAmount > 0) {
-    rDiscountRow.style.display = 'flex';
-    document.getElementById('rDiscount').textContent = `-₹${totals.discountAmount}`;
-  } else {
-    rDiscountRow.style.display = 'none';
-  }
-
-  document.getElementById('rTax').textContent = `₹${totals.taxAmount}`;
-  document.getElementById('rPaidBadge').textContent = paymentStatus;
-  document.getElementById('rPaidBadge').style.borderColor = paymentStatus === 'PAID' ? '#0284c7' : '#ea580c';
-  document.getElementById('rPaidBadge').style.color = paymentStatus === 'PAID' ? '#0284c7' : '#ea580c';
+  document.getElementById('rSubtotal').textContent = `₹${totals.grandTotal}`;
+  document.getElementById('rTax').textContent = `₹0`;
   document.getElementById('rGrandTotal').textContent = `₹${totals.grandTotal}`;
 
   receiptModal.classList.add('active');
@@ -517,53 +409,102 @@ function closeReceiptModal() {
   receiptModal.classList.remove('active');
 }
 
-// 9. COMPLETE & SAVE ORDER
-function saveOrder() {
+// 9. SHARE ORDER VIA WHATSAPP (TWO SMART OPTIONS)
+function shareOrderViaWhatsapp() {
   const totals = calculateTotals();
   if (totals.totalQty === 0) {
-    alert("Cannot save an empty bill.");
+    alert("Please add items to the bill first!");
     return;
   }
+
+  const customerName = customerNameInput.value.trim();
+  const rawPhone = customerPhoneInput.value.trim();
+
+  // Build clean WhatsApp receipt message text
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+  let itemsText = '';
+  for (const id in cart) {
+    const qty = cart[id];
+    const item = MENU_ITEMS.find(i => i.id === id);
+    if (item && qty > 0) {
+      itemsText += `• ${qty} x ${item.name} - ₹${item.price * qty}\n`;
+    }
+  }
+
+  let customerLine = customerName ? `👤 *Customer:* ${customerName}\n` : '';
+
+  const receiptMessage = 
+`🧾 *BAKE 'N' BITE*
+📍 Shop No. 32, Swarg Ashram Road, Hapur
+📞 9045608286
+━━━━━━━━━━━━━━━━━━━━
+*BILL / ORDER DETAILS*
+Invoice: #BNB-${currentInvoiceSeq}
+Date: ${dateStr}, ${timeStr}
+${customerLine}━━━━━━━━━━━━━━━━━━━━
+*ITEMS ORDERED:*
+${itemsText}━━━━━━━━━━━━━━━━━━━━
+*Total Items:* ${totals.totalQty}
+*TOTAL BILL:* ₹${totals.grandTotal} (PAID)
+━━━━━━━━━━━━━━━━━━━━
+Thank you for dining with Bake 'N' Bite!
+🛵 Available on Zomato`;
+
+  const encodedMsg = encodeURIComponent(receiptMessage);
+
+  // Clean phone number: remove non-digits
+  const cleanPhone = rawPhone.replace(/\D/g, '');
+  let whatsappUrl = '';
+
+  if (cleanPhone) {
+    // If standard 10 digit Indian number without country code, prepend 91
+    let finalPhone = cleanPhone;
+    if (cleanPhone.length === 10) {
+      finalPhone = '91' + cleanPhone;
+    }
+    // Direct to customer's WhatsApp chat
+    whatsappUrl = `https://api.whatsapp.com/send?phone=${finalPhone}&text=${encodedMsg}`;
+  } else {
+    // If no phone number entered, open WhatsApp contact selector
+    whatsappUrl = `https://api.whatsapp.com/send?text=${encodedMsg}`;
+  }
+
+  // Auto record order into history
+  saveOrderInternal();
+
+  // Open WhatsApp
+  window.open(whatsappUrl, '_blank');
+}
+
+// 10. SAVE ORDER TO HISTORY
+function saveOrderInternal() {
+  const totals = calculateTotals();
+  if (totals.totalQty === 0) return;
 
   const orderRecord = {
     invoice: `#BNB-${currentInvoiceSeq}`,
     date: new Date().toISOString(),
-    customer: document.getElementById('customerName').value.trim() || 'Walk-in',
-    phone: document.getElementById('customerPhone').value.trim() || '-',
-    type: document.getElementById('orderType').value,
-    payMethod: document.querySelector('input[name="payMethod"]:checked')?.value || 'Cash',
-    status: paymentStatusSelect.value,
+    customer: customerNameInput.value.trim() || 'Customer',
+    phone: customerPhoneInput.value.trim() || '-',
     itemsCount: totals.totalQty,
-    subtotal: totals.subtotal,
-    discount: totals.discountAmount,
-    tax: totals.taxAmount,
     grandTotal: totals.grandTotal,
-    cartSnapshot: { ...cart },
-    customSnapshot: { ...customItems }
+    cartSnapshot: { ...cart }
   };
 
   orderHistory.unshift(orderRecord);
-  if (orderHistory.length > 50) orderHistory.pop(); // keep last 50
+  if (orderHistory.length > 50) orderHistory.pop();
   localStorage.setItem('bnb_order_history', JSON.stringify(orderHistory));
 
   currentInvoiceSeq++;
   localStorage.setItem('bnb_invoice_seq', currentInvoiceSeq.toString());
   updateInvoiceDisplay();
   updateHistoryCount();
-
-  alert(`Order #BNB-${currentInvoiceSeq - 1} saved successfully! Total: ₹${totals.grandTotal}`);
-
-  // Clear bill for next customer
-  cart = {};
-  customItems = {};
-  document.getElementById('customerName').value = '';
-  document.getElementById('customerPhone').value = '';
-  discountValueInput.value = '0';
-  renderMenu();
-  renderBill();
 }
 
-// 10. ORDER HISTORY MODAL
+// 11. ORDER HISTORY MODAL
 function openHistoryModal() {
   const listEl = document.getElementById('historyList');
   if (orderHistory.length === 0) {
@@ -574,7 +515,7 @@ function openHistoryModal() {
       </div>
     `;
   } else {
-    listEl.innerHTML = orderHistory.map((ord, idx) => {
+    listEl.innerHTML = orderHistory.map((ord) => {
       const dt = new Date(ord.date);
       const timeStr = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
       const dateStr = dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
@@ -582,11 +523,11 @@ function openHistoryModal() {
         <div class="history-card">
           <div>
             <div class="h-info-title">${ord.invoice} • ${ord.customer}</div>
-            <div class="h-info-sub">${dateStr} at ${timeStr} • ${ord.type} • ${ord.itemsCount} items</div>
+            <div class="h-info-sub">${dateStr} at ${timeStr} • ${ord.itemsCount} items</div>
           </div>
           <div class="h-right">
             <div class="h-amount">₹${ord.grandTotal}</div>
-            <span class="paid-badge" style="font-size:0.68rem;">${ord.status}</span>
+            <span class="paid-badge" style="font-size:0.68rem;">PAID</span>
           </div>
         </div>
       `;
@@ -634,7 +575,7 @@ function escapeHtml(str) {
   });
 }
 
-// 11. EVENT LISTENERS
+// 12. EVENT LISTENERS
 function setupEventListeners() {
   // Category tabs click
   categoryTabs.addEventListener('click', (e) => {
@@ -656,21 +597,21 @@ function setupEventListeners() {
     resetSearch();
   });
 
-  // Custom Item add button
-  document.getElementById('addCustomItemBtn').addEventListener('click', addCustomItem);
-
-  // Discount & Tax inputs
-  discountValueInput.addEventListener('input', renderBill);
-  discountTypeSelect.addEventListener('change', renderBill);
-  taxRateSelect.addEventListener('change', renderBill);
-  paymentStatusSelect.addEventListener('change', renderBill);
+  // Mobile drawer buttons
+  if (mobileViewBillBtn) mobileViewBillBtn.addEventListener('click', openMobileDrawer);
+  if (mobileHeaderCartBtn) mobileHeaderCartBtn.addEventListener('click', openMobileDrawer);
+  if (closeMobileBillBtn) closeMobileBillBtn.addEventListener('click', closeMobileDrawer);
+  if (mobileBackdrop) mobileBackdrop.addEventListener('click', closeMobileDrawer);
 
   // Clear bill button
   document.getElementById('resetCartBtn').addEventListener('click', clearCart);
 
   // Print / Details button
   document.getElementById('printReceiptBtn').addEventListener('click', openReceiptModal);
-  document.getElementById('saveOrderBtn').addEventListener('click', saveOrder);
+
+  // WhatsApp share buttons
+  if (shareWhatsappBtn) shareWhatsappBtn.addEventListener('click', shareOrderViaWhatsapp);
+  if (modalWhatsappBtn) modalWhatsappBtn.addEventListener('click', shareOrderViaWhatsapp);
 
   // Receipt Modal actions
   document.getElementById('closeModalBtn').addEventListener('click', closeReceiptModal);
@@ -690,11 +631,12 @@ function setupEventListeners() {
     if (e.target === historyModal) closeHistoryModal();
   });
 
-  // Keyboard shortcut: Esc closes modals
+  // Keyboard shortcut: Esc closes modals and mobile drawer
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeReceiptModal();
       closeHistoryModal();
+      closeMobileDrawer();
     }
   });
 }
