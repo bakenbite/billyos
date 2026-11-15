@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bake 'N' Bite - POS & Bill Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- LEFT SIDE: MENU & CATALOG -->
+    <main class="menu-section">
+      <!-- HEADER -->
+      <header class="restaurant-header">
+        <div class="brand-wrap">
+          <div class="brand-logo-badge">
+            <span class="veg-badge"><span class="veg-dot"></span></span>
+            🍕
+          </div>
+          <div class="brand-info">
+            <div class="title-row">
+              <h1 class="brand-name">BAKE 'N' BITE</h1>
+              <span class="pure-veg-tag">100% PURE VEG</span>
+            </div>
+            <p class="brand-sub">Shop No. 32, Swarg Ashram Road, Hapur | 📞 9045608286</p>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <div class="order-meta-chip">
+            <span class="meta-label">Invoice:</span>
+            <span id="currentInvoiceNumber" class="meta-val">#BNB-1001</span>
+          </div>
+          <button id="viewHistoryBtn" class="btn-secondary" title="View Recent Orders">
+            📋 Order History (<span id="historyCount">0</span>)
+          </button>
+        </div>
+      </header>
+
+      <!-- SEARCH & FILTER TOOLBAR -->
+      <section class="toolbar-section">
+        <div class="search-input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Search pizza, burger, momos, shakes..." autocomplete="off">
+          <button id="clearSearchBtn" class="clear-search-btn" title="Clear">✕</button>
+        </div>
+
+        <div class="category-scroll-container">
+          <div class="category-tabs" id="categoryTabs">
+            <!-- Dynamically populated categories -->
+          </div>
+        </div>
+      </section>
+
+      <!-- MENU GRID -->
+      <section class="catalog-container">
+        <div class="catalog-status-bar">
+          <span id="itemsFoundText">Showing all items</span>
+          <span class="quick-add-tip">💡 Click any item to add it to the bill</span>
+        </div>
+        <div class="menu-grid" id="menuGrid">
+          <!-- Dynamically populated cards -->
+        </div>
+      </section>
+    </main>
+
+    <!-- RIGHT SIDE: BILL & ORDER PANEL -->
+    <aside class="billing-panel" id="billingPanel">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h2>Order & Billing</h2>
+          <span class="item-counter-badge" id="totalItemsBadge">0 Items</span>
+        </div>
+        <button id="resetCartBtn" class="btn-ghost text-danger" title="Clear this entire bill">
+          🗑️ Clear
+        </button>
+      </div>
+
+      <!-- CUSTOMER & ORDER INFO BAR -->
+      <div class="order-inputs-card">
+        <div class="input-row">
+          <div class="input-field">
+            <label for="customerName">Customer Name (Optional)</label>
+            <input type="text" id="customerName" placeholder="e.g. Rahul Sharma">
+          </div>
+          <div class="input-field">
+            <label for="orderType">Order Type</label>
+            <select id="orderType">
+              <option value="Dine-in">Dine-in</option>
+              <option value="Takeaway" selected>Takeaway</option>
+              <option value="Delivery">Delivery</option>
+            </select>
+          </div>
+        </div>
+        <div class="input-row">
+          <div class="input-field">
+            <label for="customerPhone">Phone / Table No.</label>
+            <input type="text" id="customerPhone" placeholder="e.g. 9876543210 or Table 4">
+          </div>
+          <div class="input-field">
+            <label for="paymentStatus">Bill Status</label>
+            <select id="paymentStatus">
+              <option value="PAID" selected>PAID</option>
+              <option value="PENDING">PENDING</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- BILL ITEMS LIST -->
+      <div class="bill-items-wrapper">
+        <div class="bill-table-head">
+          <span>Item</span>
+          <span class="text-center">Qty</span>
+          <span class="text-right">Price</span>
+          <span class="text-right">Total</span>
+          <span></span>
+        </div>
+
+        <div class="bill-items-list" id="billItemsList">
+          <!-- Empty State -->
+          <div class="empty-cart-state" id="emptyCartState">
+            <div class="empty-cart-icon">🛒</div>
+            <h3>No items added yet</h3>
+            <p>Click on any food item from the menu to start calculating the bill.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CUSTOM ITEM ADDITION (Optional extra/add-on) -->
+      <div class="quick-add-custom">
+        <details>
+          <summary>+ Add Custom Item / Extra Charge</summary>
+          <div class="custom-item-form">
+            <input type="text" id="customItemName" placeholder="Item name (e.g. Extra Cheese)">
+            <input type="number" id="customItemPrice" placeholder="₹ Price" min="1">
+            <button type="button" id="addCustomItemBtn" class="btn-sm btn-primary">Add</button>
+          </div>
+        </details>
+      </div>
+
+      <!-- SUMMARY CALCULATIONS -->
+      <div class="bill-summary-card">
+        <div class="summary-line">
+          <span>Subtotal (<span id="summaryTotalQty">0</span> items)</span>
+          <span class="summary-val" id="summarySubtotal">₹0</span>
+        </div>
+
+        <div class="summary-line discount-line">
+          <div class="label-with-input">
+            <span>Discount</span>
+            <div class="discount-inputs">
+              <input type="number" id="discountValue" value="0" min="0" placeholder="0">
+              <select id="discountType">
+                <option value="flat">₹</option>
+                <option value="percent">%</option>
+              </select>
+            </div>
+          </div>
+          <span class="summary-val text-success" id="summaryDiscount">- ₹0</span>
+        </div>
+
+        <div class="summary-line tax-line">
+          <div class="label-with-input">
+            <span>Taxes (GST)</span>
+            <select id="taxRateSelect">
+              <option value="0" selected>0% (No Tax)</option>
+              <option value="5">5% GST</option>
+              <option value="18">18% GST</option>
+            </select>
+          </div>
+          <span class="summary-val" id="summaryTax">₹0</span>
+        </div>
+
+        <div class="summary-divider"></div>
+
+        <div class="summary-line grand-total-line">
+          <div>
+            <span class="grand-total-label">Total Bill</span>
+            <span class="status-pill-indicator" id="statusPillDisplay">PAID</span>
+          </div>
+          <span class="grand-total-val" id="summaryGrandTotal">₹0</span>
+        </div>
+
+        <div class="payment-method-row">
+          <label class="pay-method-radio">
+            <input type="radio" name="payMethod" value="Cash" checked>
+            <span>💵 Cash</span>
+          </label>
+          <label class="pay-method-radio">
+            <input type="radio" name="payMethod" value="UPI">
+            <span>📱 UPI / QR</span>
+          </label>
+          <label class="pay-method-radio">
+            <input type="radio" name="payMethod" value="Card">
+            <span>💳 Card</span>
+          </label>
+        </div>
+
+        <!-- ACTION BUTTONS -->
+        <div class="billing-action-buttons">
+          <button id="printReceiptBtn" class="btn-primary btn-large btn-print">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+            ORDER DETAILS / PRINT
+          </button>
+          <button id="saveOrderBtn" class="btn-secondary btn-large">
+            💾 Complete & Save
+          </button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- RECEIPT MODAL (Matching exact style of user's second image) -->
+  <div class="modal-overlay" id="receiptModal">
+    <div class="modal-content receipt-card-modal">
+      <div class="modal-top-bar">
+        <span class="modal-title">Receipt Preview</span>
+        <button class="modal-close" id="closeModalBtn">&times;</button>
+      </div>
+
+      <!-- Printable area matching Image 2 -->
+      <div class="receipt-preview-container" id="printableReceipt">
+        <div class="receipt-header-brand">
+          <div class="receipt-restaurant-name">BAKE 'N' BITE</div>
+          <div class="receipt-restaurant-address">Shop No. 32, Swarg Ashram Road, Hapur - 245101</div>
+          <div class="receipt-restaurant-phone">Ph: +91 9045608286</div>
+          <div class="receipt-divider-dash"></div>
+        </div>
+
+        <div class="receipt-details-header">
+          <span class="receipt-title-label">ORDER DETAILS</span>
+          <button class="btn-order-print-tag no-print" onclick="window.print()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+            ORDER
+          </button>
+        </div>
+
+        <div class="receipt-meta-info">
+          <div><strong>Bill:</strong> <span id="rInvoice">#BNB-1001</span></div>
+          <div><strong>Date:</strong> <span id="rDate">--</span></div>
+          <div id="rCustomerRow" style="display: none;"><strong>Customer:</strong> <span id="rCustomer">--</span></div>
+          <div><strong>Type:</strong> <span id="rType">Takeaway</span> (<span id="rPaymentMethod">Cash</span>)</div>
+        </div>
+
+        <div class="receipt-items-container" id="rItemsList">
+          <!-- Items will be injected here: 1 x Aloo Tikki Burger   ₹109 style -->
+        </div>
+
+        <div class="receipt-totals-section">
+          <div class="receipt-line">
+            <span id="rItemCount">2 items</span>
+            <span id="rSubtotal">₹268</span>
+          </div>
+          <div class="receipt-line" id="rDiscountRow" style="display:none;">
+            <span>Discount</span>
+            <span id="rDiscount">-₹0</span>
+          </div>
+          <div class="receipt-line">
+            <span class="dashed-under">Taxes</span>
+            <span id="rTax">₹0</span>
+          </div>
+          <div class="receipt-divider-solid"></div>
+          <div class="receipt-line total-bill-line">
+            <span class="total-text">Total Bill <span class="paid-badge" id="rPaidBadge">PAID</span></span>
+            <span class="total-amount" id="rGrandTotal">₹268</span>
+          </div>
+        </div>
+
+        <div class="receipt-footer">
+          <p>Thank you for dining with Bake 'N' Bite!</p>
+          <p class="zomato-tag">Also available on Zomato 🛵</p>
+        </div>
+      </div>
+
+      <div class="modal-footer no-print">
+        <button class="btn-secondary" id="closeModalBottomBtn">Close</button>
+        <button class="btn-primary" onclick="window.print()">
+          🖨️ Print Receipt
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ORDER HISTORY MODAL -->
+  <div class="modal-overlay" id="historyModal">
+    <div class="modal-content history-modal-content">
+      <div class="modal-top-bar">
+        <span class="modal-title">Saved Order History</span>
+        <button class="modal-close" id="closeHistoryModalBtn">&times;</button>
+      </div>
+      <div class="history-list-wrap" id="historyList">
+        <!-- Render past orders -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost text-danger" id="clearAllHistoryBtn">Clear All History</button>
+        <button class="btn-secondary" id="closeHistoryBottomBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
