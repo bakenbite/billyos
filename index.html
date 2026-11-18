@@ -51,7 +51,7 @@
       <section class="toolbar-section">
         <div class="search-input-wrapper">
           <span class="search-icon">🔍</span>
-          <input type="text" id="searchInput" placeholder="Search pizza, burger, momos, shakes..." autocomplete="off">
+          <input type="text" id="searchInput" placeholder="Search pizza, burger, momos, shakes, cold drink..." autocomplete="off">
           <button id="clearSearchBtn" class="clear-search-btn" title="Clear">✕</button>
         </div>
 
@@ -94,11 +94,26 @@
         <div class="input-row single-row-inputs">
           <div class="input-field">
             <label for="customerName">Customer Name (Optional)</label>
-            <input type="text" id="customerName" placeholder="e.g. Rahul Sharma">
+            <input type="text" id="customerName" placeholder="e.g. Rahul Sharma" autocomplete="off">
           </div>
           <div class="input-field">
             <label for="customerPhone">WhatsApp / Mobile No. (Optional)</label>
-            <input type="tel" id="customerPhone" placeholder="e.g. 9876543210">
+            <input type="tel" id="customerPhone" placeholder="e.g. 9876543210" autocomplete="off">
+          </div>
+        </div>
+      </div>
+
+      <!-- EXTRA / CUSTOM ITEM MANUAL ADD (Name, Quantity & Price) -->
+      <div class="extra-item-card">
+        <div class="extra-card-title">
+          <span>➕ Add Extra (Off-Menu Item)</span>
+        </div>
+        <div class="extra-form-grid">
+          <input type="text" id="extraNameInput" placeholder="Item Name (e.g. Extra Dip, Water Bottle)" class="extra-input-name" autocomplete="off">
+          <div class="extra-sub-grid">
+            <input type="number" id="extraQtyInput" placeholder="Qty" value="1" min="1" class="extra-input-qty" title="Quantity">
+            <input type="number" id="extraPriceInput" placeholder="₹ Price" min="0" class="extra-input-price" title="Price per unit">
+            <button type="button" id="addExtraBtn" class="btn-add-extra">+ Add Extra</button>
           </div>
         </div>
       </div>

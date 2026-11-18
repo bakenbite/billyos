@@ -1,10 +1,10 @@
 /**
  * BAKE 'N' BITE - POS & Billing System
  * Complete menu data and live calculation logic
- * Mobile Responsive + WhatsApp Receipt Sharing
+ * Mobile Responsive + WhatsApp Receipt Sharing + Extra Items
  */
 
-// 1. MENU DATA EXACTLY FROM THE MENU CARD
+// 1. MENU DATA EXACTLY FROM THE MENU CARD + SOFT DRINKS
 const MENU_ITEMS = [
   // PIZZA (Large 9")
   { id: 'p1', name: 'Margherita Pizza', price: 100, category: 'Pizza', icon: '🍕', desc: 'Classic single cheese pizza (Large 9")' },
@@ -64,6 +64,10 @@ const MENU_ITEMS = [
   { id: 'sh2', name: 'Kitkat Shake', price: 99, category: 'Shakes', icon: '🧋', desc: 'Chocolaty KitKat bar blended thick shake' },
   { id: 'sh3', name: 'Chocolate Shake', price: 99, category: 'Shakes', icon: '🧋', desc: 'Rich creamy chocolate shake with syrup' },
 
+  // SOFT DRINKS (Cold Drink 250ml & 750ml / 1L)
+  { id: 'sd1', name: 'Cold Drink (250ml)', price: 20, category: 'Soft Drink', icon: '🥤', desc: 'Chilled refreshing soft drink (250ml)' },
+  { id: 'sd2', name: 'Cold Drink (750ml / 1L)', price: 50, category: 'Soft Drink', icon: '🍾', desc: 'Chilled bottle (750ml / 1 Litre)' },
+
   // PASTA
   { id: 'ps1', name: 'White Sauce Pasta', price: 130, category: 'Pasta', icon: '🍝', desc: 'Creamy Alfredo white sauce penne pasta' },
 
@@ -74,6 +78,7 @@ const MENU_ITEMS = [
 
 // 2. STATE MANAGEMENT
 let cart = {}; // { itemId: quantity }
+let customItems = {}; // { customId: { id, name, qty, price } }
 let activeCategory = 'All';
 let searchQuery = '';
 let currentInvoiceSeq = parseInt(localStorage.getItem('bnb_invoice_seq') || '1001', 10);
@@ -98,6 +103,11 @@ const closeMobileBillBtn = document.getElementById('closeMobileBillBtn');
 
 const customerNameInput = document.getElementById('customerName');
 const customerPhoneInput = document.getElementById('customerPhone');
+
+const extraNameInput = document.getElementById('extraNameInput');
+const extraQtyInput = document.getElementById('extraQtyInput');
+const extraPriceInput = document.getElementById('extraPriceInput');
+const addExtraBtn = document.getElementById('addExtraBtn');
 
 const billItemsList = document.getElementById('billItemsList');
 const emptyCartState = document.getElementById('emptyCartState');
@@ -205,7 +215,7 @@ function renderMenu() {
   }).join('');
 }
 
-// 5. CART / BILL CALCULATIONS
+// 5. CART & BILL ACTIONS
 function handleCardClick(event, id) {
   addItem(id);
 }
@@ -243,10 +253,72 @@ function removeItem(id) {
   }
 }
 
+// EXTRA / CUSTOM ITEMS MANAGEMENT
+function addExtraItem() {
+  const name = extraNameInput.value.trim();
+  const qty = parseInt(extraQtyInput.value, 10) || 1;
+  const price = parseFloat(extraPriceInput.value);
+
+  if (!name) {
+    alert("Please enter the extra item name.");
+    extraNameInput.focus();
+    return;
+  }
+  if (isNaN(price) || price < 0) {
+    alert("Please enter a valid price (₹).");
+    extraPriceInput.focus();
+    return;
+  }
+  if (qty < 1) {
+    alert("Quantity must be at least 1.");
+    extraQtyInput.focus();
+    return;
+  }
+
+  const id = 'ex_' + Date.now();
+  customItems[id] = {
+    id,
+    name,
+    qty,
+    price: Math.round(price)
+  };
+
+  extraNameInput.value = '';
+  extraQtyInput.value = '1';
+  extraPriceInput.value = '';
+
+  renderBill();
+}
+
+function incrementExtraItem(id) {
+  if (customItems[id]) {
+    customItems[id].qty += 1;
+    renderBill();
+  }
+}
+
+function decrementExtraItem(id) {
+  if (customItems[id]) {
+    customItems[id].qty -= 1;
+    if (customItems[id].qty <= 0) {
+      delete customItems[id];
+    }
+    renderBill();
+  }
+}
+
+function removeExtraItem(id) {
+  if (customItems[id]) {
+    delete customItems[id];
+    renderBill();
+  }
+}
+
 function clearCart() {
-  if (Object.keys(cart).length === 0) return;
+  if (Object.keys(cart).length === 0 && Object.keys(customItems).length === 0) return;
   if (confirm("Are you sure you want to clear this bill?")) {
     cart = {};
+    customItems = {};
     if (customerNameInput) customerNameInput.value = '';
     if (customerPhoneInput) customerPhoneInput.value = '';
     renderMenu();
@@ -259,12 +331,22 @@ function calculateTotals() {
   let totalQty = 0;
   let totalAmount = 0;
 
+  // Regular menu items
   for (const id in cart) {
     const qty = cart[id];
     const item = MENU_ITEMS.find(i => i.id === id);
     if (item && qty > 0) {
       totalQty += qty;
       totalAmount += item.price * qty;
+    }
+  }
+
+  // Extra off-menu items
+  for (const id in customItems) {
+    const item = customItems[id];
+    if (item && item.qty > 0) {
+      totalQty += item.qty;
+      totalAmount += item.price * item.qty;
     }
   }
 
@@ -307,6 +389,8 @@ function renderBill() {
 
   // Build rows
   let html = '';
+
+  // 1. Regular Menu items
   for (const id in cart) {
     const qty = cart[id];
     const item = MENU_ITEMS.find(i => i.id === id);
@@ -326,6 +410,29 @@ function renderBill() {
         <div class="bill-item-rate text-right">₹${item.price}</div>
         <div class="bill-item-amount text-right">₹${item.price * qty}</div>
         <button type="button" class="btn-remove-row" onclick="removeItem('${item.id}')" title="Remove">✕</button>
+      </div>
+    `;
+  }
+
+  // 2. Extra Off-Menu items
+  for (const id in customItems) {
+    const item = customItems[id];
+    if (!item || item.qty <= 0) continue;
+
+    html += `
+      <div class="bill-row extra-bill-row">
+        <div>
+          <div class="bill-item-name">${item.name} <span class="extra-badge">Extra</span></div>
+          <div class="bill-item-sub">Off-Menu</div>
+        </div>
+        <div class="qty-controls">
+          <button type="button" class="qty-btn" onclick="decrementExtraItem('${id}')">−</button>
+          <span class="qty-val">${item.qty}</span>
+          <button type="button" class="qty-btn" onclick="incrementExtraItem('${id}')">+</button>
+        </div>
+        <div class="bill-item-rate text-right">₹${item.price}</div>
+        <div class="bill-item-amount text-right">₹${item.price * item.qty}</div>
+        <button type="button" class="btn-remove-row" onclick="removeExtraItem('${id}')" title="Remove">✕</button>
       </div>
     `;
   }
@@ -378,6 +485,7 @@ function openReceiptModal() {
   const rItemsList = document.getElementById('rItemsList');
   let itemsHtml = '';
 
+  // Menu items
   for (const id in cart) {
     const qty = cart[id];
     const item = MENU_ITEMS.find(i => i.id === id);
@@ -390,6 +498,22 @@ function openReceiptModal() {
           <span class="r-item-name">${item.name}</span>
         </div>
         <div class="receipt-item-amount">₹${item.price * qty}</div>
+      </div>
+    `;
+  }
+
+  // Extra items
+  for (const id in customItems) {
+    const item = customItems[id];
+    if (!item || item.qty <= 0) continue;
+
+    itemsHtml += `
+      <div class="receipt-item-row">
+        <div class="receipt-item-name-wrap">
+          <span class="r-qty">${item.qty} x</span>
+          <span class="r-item-name">${item.name}</span>
+        </div>
+        <div class="receipt-item-amount">₹${item.price * item.qty}</div>
       </div>
     `;
   }
@@ -426,11 +550,20 @@ function shareOrderViaWhatsapp() {
   const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
   let itemsText = '';
+  // Menu items
   for (const id in cart) {
     const qty = cart[id];
     const item = MENU_ITEMS.find(i => i.id === id);
     if (item && qty > 0) {
       itemsText += `• ${qty} x ${item.name} - ₹${item.price * qty}\n`;
+    }
+  }
+
+  // Extra items
+  for (const id in customItems) {
+    const item = customItems[id];
+    if (item && item.qty > 0) {
+      itemsText += `• ${item.qty} x ${item.name} (Extra) - ₹${item.price * item.qty}\n`;
     }
   }
 
@@ -491,7 +624,8 @@ function saveOrderInternal() {
     phone: customerPhoneInput.value.trim() || '-',
     itemsCount: totals.totalQty,
     grandTotal: totals.grandTotal,
-    cartSnapshot: { ...cart }
+    cartSnapshot: { ...cart },
+    customSnapshot: { ...customItems }
   };
 
   orderHistory.unshift(orderRecord);
@@ -596,6 +730,27 @@ function setupEventListeners() {
   clearSearchBtn.addEventListener('click', () => {
     resetSearch();
   });
+
+  // Extra manual item add
+  if (addExtraBtn) {
+    addExtraBtn.addEventListener('click', addExtraItem);
+  }
+  if (extraPriceInput) {
+    extraPriceInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') addExtraItem();
+    });
+  }
+  if (extraNameInput) {
+    extraNameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        if (extraPriceInput.value) {
+          addExtraItem();
+        } else {
+          extraPriceInput.focus();
+        }
+      }
+    });
+  }
 
   // Mobile drawer buttons
   if (mobileViewBillBtn) mobileViewBillBtn.addEventListener('click', openMobileDrawer);

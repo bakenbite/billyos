@@ -6,17 +6,23 @@ A lightweight, modern web-based Point of Sale (POS) and real-time Bill Calculato
 
 ## ✨ Features
 
+- **🥤 Soft Drinks Category Added**:
+  - `Cold Drink (250ml)` = ₹20
+  - `Cold Drink (750ml / 1L)` = ₹50
+  - Seamlessly searchable and filterable with its own category tab.
+
+- **➕ "Extra" Manual Off-Menu Item Entry**:
+  - Quickly add off-menu or custom items directly into the bill.
+  - Inputs for **Item Name**, **Quantity**, and **Price (₹)**.
+  - Automatically participates in live bill calculation, quantity steppers (`-` / `+`), receipt printing, and WhatsApp sharing.
+
 - **📲 Smart WhatsApp Receipt Sharing**:
   - **With Customer Number**: Automatically directs the bill to the customer's WhatsApp chat with all order details formatted cleanly.
   - **Without Customer Number**: Redirects to WhatsApp with a contact picker to choose any contact from your saved list.
   - **Formatted Message**: Includes restaurant name, address, phone, invoice number, items ordered with prices, item count, and total bill.
 
-- **🧹 Clean & Direct Billing Flow**:
-  - Removed all unnecessary inputs (Order Type, Bill Status, Subtotal, Discount, Payment mode selectors).
-  - Simply shows Customer Name & WhatsApp Number, the bill item rows (`- Qty +`), and the direct **Total Bill (PAID)**.
-
-- **🍕 Complete Menu Catalog (34 Dishes Across 13 Categories)**:
-  - Exact prices and names from the restaurant menu card (Pizza Large 9", Kulhad Pizza ₹99, Subway Rolls, Sandwiches, Burgers, Momos Platter, Fries, Noodles, Shakes ₹99, Coffee, Pasta, Chilli Potato).
+- **🍕 Complete Menu Catalog (36 Dishes Across 14 Categories)**:
+  - Exact prices and names from the restaurant menu card (Pizza Large 9", Kulhad Pizza ₹99, Subway Rolls, Sandwiches, Burgers, Momos Platter, Fries, Noodles, Shakes ₹99, Soft Drinks, Coffee, Pasta, Chilli Potato).
 
 - **📱 Fully Responsive (Mobile Phone, Tablet & Desktop)**:
   - **Phone-Optimized POS**: Clean touch-friendly cards with quick `+ ADD` and stepper controls.
